@@ -373,23 +373,23 @@ different subdirectories</h1>
 
 <div id="background" class="section level2">
 <h2>Background</h2>
-<p>One of a situation we might face in our daily dealings with data and
-files involve having to segregrate files from a single directory into
-several subdirectories, be it for aesthetics, organisation, or to
-facilitate downstream analyses. In my case, I have downloaded ~2000 DNA
-sequence data belonging to multiple original projects from the NCBI
-public repository into a single folder to ease data processing, but now
-am required to process data from each project separately. It is easy to
-do this manually if we are only dealing with a few files. In my case,
-however, manually segregating ~2000 files into 40 subdirectories is
-simply not a productive use of time.</p>
+<p>One of the situation we might face in our daily dealings with data
+and files involve having to segregrate files from a single directory
+into several subdirectories, be it for aesthetics, organisation, or to
+facilitate downstream analyses. In my case, I have previously downloaded
+~2000 DNA sequence data belonging to multiple original projects from the
+NCBI public repository into a single folder, but now am required to
+process data from each project separately. It is easy to do this
+manually if we are only dealing with a few files. In my case, however,
+manually segregating ~2000 files into 40 subdirectories is simply not a
+productive use of time.</p>
 <p>To facilitate the lazy me, I came up with the script below to bypass
 the boring manual job and complete it in seconds.</p>
 </div>
 <div id="loading-the-tidyverse-environment" class="section level2">
 <h2>Loading the tidyverse environment</h2>
 <p>I like to work within the tidyverse environment, which I think is one
-advantages of scripting in R. Tidyverse provides a collection of
+of the advantages of scripting in R. Tidyverse provides a collection of
 functions and script formatting which helps make our script more
 intuitive. You can load the tidyverse package, or install it if you
 haven’t using the following script:</p>
@@ -410,8 +410,9 @@ library(tidyverse)</code></pre>
 <div id="preparing-dummy-data-files" class="section level2">
 <h2>Preparing dummy data files</h2>
 <p>I will demonstrate this project by first creating nine dummy text
-files that I shall name for convenience’s sake. We can achieve this in R
-by doing a simple loop with the <code>file.create()</code> function:</p>
+files that I shall name <code>{a-c}{1-3}.txt</code> for convenience’s
+sake. We can achieve this in R by doing a simple loop with the
+<code>file.create()</code> function:</p>
 <pre class="r"><code># a string of files to create
 file_to_create = c(paste0(&#39;a&#39;, 1:3, &#39;.txt&#39;), paste0(&#39;b&#39;, 1:3, &#39;.txt&#39;), paste0(&#39;c&#39;, 1:3, &#39;.txt&#39;))
 
@@ -452,10 +453,14 @@ each file into their respective folders. An example is shown below:</p>
 Based on the dummy files that I’ve created, I can create the above
 helper file using the steps below:</p>
 <pre class="r"><code>helper_file = 
+  # work with the file_to_create variable
   file_to_create %&gt;% 
-  tibble %&gt;%
-  rename(&#39;filename&#39; = &#39;.&#39;) %&gt;%
-  mutate(folder = paste0(&#39;folder_&#39;, str_extract(string=filename, pattern = &#39;^[[:letter:]]{1}&#39;)))
+  # convert to tibble format 
+  tibble %&gt;% 
+  # rename the default column name of &#39;.&#39; into &#39;filename&#39;
+  rename(&#39;filename&#39; = &#39;.&#39;) %&gt;% 
+  # create a new column of target folder name by combining the string &#39;folder_&#39; and the first letter of the file name together
+  mutate(folder = paste0(&#39;folder_&#39;, str_extract(string=filename, pattern = &#39;^[[:letter:]]{1}&#39;))) 
 
 helper_file</code></pre>
 <pre><code>## # A tibble: 9 × 2
@@ -503,6 +508,10 @@ creation and file moving using the loop below:</p>
   }
   
 }</code></pre>
+<p>Previously, we set the <code>column names=F</code> when writing our
+helper file as the above loop functions through reading the file line by
+line. As such, the presence of column names is unnecessary and their
+exclusion simplifies this loop.</p>
 <p>We can check to see if we have completed our task by looking at the
 directory structure:</p>
 <pre class="r"><code>list.files(pattern=&#39;txt&#39;, recursive = T) # set recursive=T to recursively evaluate the sub-directories</code></pre>
