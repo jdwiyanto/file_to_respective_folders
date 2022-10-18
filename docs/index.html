@@ -13,7 +13,7 @@
 
 <meta name="date" content="2022-10-18" />
 
-<title>Using R to Move files into different folders</title>
+<title>Using R to easily move multiple files into different subdirectories</title>
 
 <script>// Pandoc 2.9 adds attributes on both header and div. We remove the former (to
 // be compatible with the behavior of Pandoc < 2.8).
@@ -363,8 +363,8 @@ pre code {
 
 
 
-<h1 class="title toc-ignore">Using R to Move files into different
-folders</h1>
+<h1 class="title toc-ignore">Using R to easily move multiple files into
+different subdirectories</h1>
 <h4 class="author">Jacky Dwiyanto</h4>
 <h4 class="date">2022-10-18</h4>
 
@@ -375,15 +375,14 @@ folders</h1>
 <h2>Background</h2>
 <p>One of a situation we might face in our daily dealings with data and
 files involve having to segregrate files from a single directory into
-several subdirectories, be it for aesthetics, organisation, or because
-the groupings are necessary for downstream analytics processes. In my
-case, I have downloaded a some DNA sequence data belonging to multiple
-original projects from the NCBI public repository, and now am required
-to process data from each project separately for my downstream analyses.
-It is easy to do this manually if we are only dealing with a few files.
-In my case, however, I am required to segregate ~2000 files into 40
-subdirectories, which require wasting some valuable time if performed
-manually.</p>
+several subdirectories, be it for aesthetics, organisation, or to
+facilitate downstream analyses. In my case, I have downloaded ~2000 DNA
+sequence data belonging to multiple original projects from the NCBI
+public repository into a single folder to ease data processing, but now
+am required to process data from each project separately. It is easy to
+do this manually if we are only dealing with a few files. In my case,
+however, manually segregating ~2000 files into 40 subdirectories is
+simply not a productive use of time.</p>
 <p>To facilitate the lazy me, I came up with the script below to bypass
 the boring manual job and complete it in seconds.</p>
 </div>
@@ -394,7 +393,8 @@ advantages of scripting in R. Tidyverse provides a collection of
 functions and script formatting which helps make our script more
 intuitive. You can load the tidyverse package, or install it if you
 haven’t using the following script:</p>
-<pre class="r"><code>if (!require(&quot;tidyverse&quot;, quietly = TRUE))
+<pre class="r"><code># this will install R if not already available
+if (!require(&quot;tidyverse&quot;, quietly = TRUE))
     install.packages(&quot;tidyverse&quot;)</code></pre>
 <pre><code>## ── Attaching packages ─────────────────────────────────────── tidyverse 1.3.1 ──</code></pre>
 <pre><code>## ✔ ggplot2 3.3.6     ✔ purrr   0.3.4
@@ -404,14 +404,15 @@ haven’t using the following script:</p>
 <pre><code>## ── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
 ## ✖ dplyr::filter() masks stats::filter()
 ## ✖ dplyr::lag()    masks stats::lag()</code></pre>
-<pre class="r"><code>library(tidyverse)</code></pre>
+<pre class="r"><code># load the tidyverse package
+library(tidyverse)</code></pre>
 </div>
 <div id="preparing-dummy-data-files" class="section level2">
 <h2>Preparing dummy data files</h2>
 <p>I will demonstrate this project by first creating nine dummy text
 files that I shall name for convenience’s sake. We can achieve this in R
 by doing a simple loop with the <code>file.create()</code> function:</p>
-<pre class="r"><code># create a string of files to create
+<pre class="r"><code># a string of files to create
 file_to_create = c(paste0(&#39;a&#39;, 1:3, &#39;.txt&#39;), paste0(&#39;b&#39;, 1:3, &#39;.txt&#39;), paste0(&#39;c&#39;, 1:3, &#39;.txt&#39;))
 
 # loop each filename into the file.create function
@@ -483,17 +484,20 @@ human input.</p>
 <p>We now have the dummy files and a helper file denoting where each
 file should be moved into ready. We can now initiate the loop for folder
 creation and file moving using the loop below:</p>
-<pre class="r"><code>for (x in readLines(con = &#39;helper_file.csv&#39;)) {
+<pre class="r"><code>for (x in readLines(con = &#39;helper_file.csv&#39;)) { # read file in the working directory line by line
   
-  filename = str_split(string=x, pattern = &#39;,&#39;, n=2)[[1]][1]
+  # split the line into two variables separated by a comma (as the input is a csv file) and extract as filename and foldername
+  filename = str_split(string=x, pattern = &#39;,&#39;, n=2)[[1]][1] 
   foldername = str_split(string=x, pattern = &#39;,&#39;, n=2)[[1]][2]
   
   if (file.exists(foldername)) {
     
+    # copy file into directory if directory already exists
     file.copy(from = filename, to = paste0(foldername, &#39;/&#39;, filename))
   
     } else {
     
+    # create directory, then copy file into directory
     dir.create(path = foldername)
     file.copy(from = filename, to = paste0(foldername, &#39;/&#39;, filename))
   }
@@ -501,7 +505,7 @@ creation and file moving using the loop below:</p>
 }</code></pre>
 <p>We can check to see if we have completed our task by looking at the
 directory structure:</p>
-<pre class="r"><code>list.files(pattern=&#39;txt&#39;, recursive = T)</code></pre>
+<pre class="r"><code>list.files(pattern=&#39;txt&#39;, recursive = T) # set recursive=T to recursively evaluate the sub-directories</code></pre>
 <pre><code>##  [1] &quot;a1.txt&quot;          &quot;a2.txt&quot;          &quot;a3.txt&quot;          &quot;b1.txt&quot;         
 ##  [5] &quot;b2.txt&quot;          &quot;b3.txt&quot;          &quot;c1.txt&quot;          &quot;c2.txt&quot;         
 ##  [9] &quot;c3.txt&quot;          &quot;folder_a/a1.txt&quot; &quot;folder_a/a2.txt&quot; &quot;folder_a/a3.txt&quot;
@@ -510,7 +514,7 @@ directory structure:</p>
 <p>Seems like we have successfuly copied the files into their respective
 folders. We can now safely delete the original files in the main
 directory to clean up our work environment:</p>
-<pre class="r"><code>file.remove(file_to_create)</code></pre>
+<pre class="r"><code>file.remove(file_to_create) # remove files as defined in the file_to_create variable</code></pre>
 <pre><code>## [1] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE</code></pre>
 <pre class="r"><code>list.files(pattern=&#39;txt&#39;, recursive = T)</code></pre>
 <pre><code>## [1] &quot;folder_a/a1.txt&quot; &quot;folder_a/a2.txt&quot; &quot;folder_a/a3.txt&quot; &quot;folder_b/b1.txt&quot;
