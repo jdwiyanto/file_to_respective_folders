@@ -1,0 +1,148 @@
+---
+title: "Using R to easily move multiple files into different subdirectories"
+author: "Jacky Dwiyanto"
+date: '2022-10-18'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Background
+
+One of the situation we might face in our daily dealings with data and files involve having to segregrate files from a single directory into several subdirectories, be it for aesthetics, organisation, or to facilitate downstream analyses. In my case, I have previously downloaded ~2000 DNA sequence data belonging to multiple original projects from the NCBI public repository into a single folder, but now am required to process data from each project separately. It is easy to do this manually if we are only dealing with a few files. In my case, however, manually segregating ~2000 files into 40 subdirectories is simply not a productive use of time. 
+
+To facilitate the lazy me, I came up with the script below to bypass the boring manual job and complete it in seconds. 
+
+## Loading the tidyverse environment
+
+I like to work within the tidyverse environment, which I think is one of the advantages of scripting in R. Tidyverse provides a collection of functions and script formatting which helps make our script more intuitive. You can load the tidyverse package, or install it if you haven't using the following script:
+
+```{r}
+
+# this will install R if not already available
+if (!require("tidyverse", quietly = TRUE))
+    install.packages("tidyverse")
+
+# load the tidyverse package
+library(tidyverse)
+
+```
+
+## Preparing dummy data files
+
+I will demonstrate this project by first creating nine dummy text files that I shall name `{a-c}{1-3}.txt` for convenience's sake. We can achieve this in R by doing a simple loop with the `file.create()` function:
+
+```{r}
+
+# a string of files to create
+file_to_create = c(paste0('a', 1:3, '.txt'), paste0('b', 1:3, '.txt'), paste0('c', 1:3, '.txt'))
+
+# loop each filename into the file.create function
+for (x in file_to_create) {
+  
+  file.create(x)
+  
+}
+
+```
+
+Your directory structure should contain the nine files you have just created.
+
+```{r}
+
+list.files(pattern='txt')
+
+```
+
+## Creating a helper file informing the subdirectory of interest for each file
+
+The task now is to group and move these files into different folders based on their alphabetical naming. We can achieve this by first creating a helper file which we will use later on to create and copy each file into their respective folders. An example is shown below:
+
+```{r, message=F, echo=F}
+
+file_to_create %>% 
+  tibble %>% 
+  rename('filename' = '.') %>% 
+  mutate(folder = paste0('folder_', str_extract(string=filename, pattern = '^[[:letter:]]{1}'))) 
+
+```
+
+From the above example, I want to move files whose names start with `a` into `folder_a`, `b` into `folder_b`, and `c` into `folder_c`. Based on the dummy files that I've created, I can create the above helper file using the steps below:
+
+```{r}
+
+helper_file = 
+  # work with the file_to_create variable
+  file_to_create %>% 
+  # convert to tibble format 
+  tibble %>% 
+  # rename the default column name of '.' into 'filename'
+  rename('filename' = '.') %>% 
+  # create a new column of target folder name by combining the string 'folder_' and the first letter of the file name together
+  mutate(folder = paste0('folder_', str_extract(string=filename, pattern = '^[[:letter:]]{1}'))) 
+
+helper_file
+
+```
+
+Let's now save this helper file into a CSV-formatted file. 
+
+```{r}
+
+write_csv(helper_file, file = 'helper_file.csv', col_names = F)
+
+```
+
+I excluded the column names from the files using the argument `col_names=F` for reason you will understand in the next section.
+
+If your end folder structure cannot be determined based on the file names alone, then you will have to manually create the helper file using human input. 
+
+## Looping directory creation and file moving 
+
+We now have the dummy files and a helper file denoting where each file should be moved into ready. We can now initiate the loop for folder creation and file moving using the loop below:
+
+```{r}
+
+for (x in readLines(con = 'helper_file.csv')) { # read file in the working directory line by line
+  
+  # split the line into two variables separated by a comma (as the input is a csv file) and extract as filename and foldername
+  filename = str_split(string=x, pattern = ',', n=2)[[1]][1] 
+  foldername = str_split(string=x, pattern = ',', n=2)[[1]][2]
+  
+  if (file.exists(foldername)) {
+    
+    # copy file into directory if directory already exists
+    file.copy(from = filename, to = paste0(foldername, '/', filename))
+  
+    } else {
+    
+    # create directory, then copy file into directory
+    dir.create(path = foldername)
+    file.copy(from = filename, to = paste0(foldername, '/', filename))
+  }
+  
+}
+
+```
+
+Previously, we set the `column names=F` when writing our helper file as the above loop functions through reading the file line by line. As such, the presence of column names is unnecessary and their exclusion simplifies this loop. 
+
+We can check to see if we have completed our task by looking at the directory structure:
+
+```{r}
+
+list.files(pattern='txt', recursive = T) # set recursive=T to recursively evaluate the sub-directories
+
+```
+
+Seems like we have successfuly copied the files into their respective folders. We can now safely delete the original files in the main directory to clean up our work environment:
+
+```{r}
+
+file.remove(file_to_create) # remove files as defined in the file_to_create variable
+
+list.files(pattern='txt', recursive = T)
+
+```
